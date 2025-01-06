@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    My Watched
+{% endblock %}
+
+{% block search %}
+{% include "search_temp.html" %}
+{% endblock %}
+
+{% block greet %}
+Bonjour, {{ firstname }} {{ lastname }}
+{% endblock %}
+
+{% block main %}
+<div class="col-md-3 mb-4 p-3 page bg-light border ">My Watched Movies</div>
+<div id="movie-list" class="row"></div>
+
+<div id="watchlist" class="alert alert-success banner" role="alert" style="display: none;">
+    Movie added to watchlist!
+</div>
+<div id="remove" class="alert alert-success banner" role="alert" style="display: none;">
+    Movie removed from watched!
+</div>
+
+{% set movie_buttons %}
+<button type="button" class="btn btn-primary me-2" id="addToWatchlist">Add to Watchlist</button>
+<button type="button" class="btn btn-danger" id="removeFromWatched" >Remove from Watched</button>
+{% endset %}
+{% include "modal.html" %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const movies = {{ movies | tojson }};
+
+        const movieList = document.getElementById('movie-list');
+        movies.forEach(movie => {
+            const movieItem = document.createElement('div');
+            movieItem.className = 'col-md-3 mb-4';
+            movieItem.innerHTML = `
+                <div class="card bg-light" style="box-shadow: 0 4px 10px rgba(210, 210, 210, 0.4); border: 0px" data-bs-toggle="modal" data-bs-target="#movieModal" data-movie-id="${movie.id}">
+                    <img src="${movie.poster_path}" class="card-img-top" alt="${movie.title}">
+                    <div class="card-body">
+                        <h5 class="card-title">${movie.title}</h5>
+                        <p class="card-text">${movie.overview.substring(0, 100)}...</p>
+                    </div>
+                </div>
+            `;
+            movieList.appendChild(movieItem);
+        });
+
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', () => {
+                const movieId = card.getAttribute('data-movie-id');
+                const movie = movies.find(m => m.id == movieId);
+
+                if (movie) {
+                    document.getElementById('movieModalLabel').textContent = movie.title;
+                    document.getElementById('movieTitle').textContent = movie.title;
+                    document.getElementById('moviePoster').src = movie.poster_path;
+                    document.getElementById('movieDescription').textContent = movie.overview;
+                    document.getElementById('movieDetails').textContent = `Release Date: ${movie.release_date} | Rating: ${movie.vote_average}`;
+                    document.getElementById('currentMovieId').value = movie.id;
+                }
+            });
+        });
+        document.getElementById('addToWatchlist').addEventListener('click', () => {
+            const movieId = document.getElementById('currentMovieId').value;
+            const title = document.getElementById('movieTitle').textContent;
+            const overview = document.getElementById('movieDescription').textContent;
+            const poster_path = document.getElementById('moviePoster').src;
+            const release_date = document.getElementById('movieDetails').textContent.split(' | ')[0].split(': ')[1];
+            const vote_average = document.getElementById('movieDetails').textContent.split(' | ')[1].split(': ')[1];
+
+            fetch('/add-to-watchlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ movieId, title, overview, poster_path, release_date, vote_average })
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log(result.message);
+            })
+            .catch(error => console.error('Error:', error));
+
+            const banner = document.getElementById('watchlist');
+            banner.style.display = 'block';
+
+            setTimeout(() => {
+            banner.style.display = 'none';
+            }, 3000);
+            setTimeout(function () {
+            window.location.reload();
+            }, 3000);
+        });
+
+        document.getElementById('removeFromWatched').addEventListener('click', () => {
+            const movieId = document.getElementById('currentMovieId').value;
+            const title = document.getElementById('movieTitle').textContent;
+            const overview = document.getElementById('movieDescription').textContent;
+            const poster_path = document.getElementById('moviePoster').src;
+            const release_date = document.getElementById('movieDetails').textContent.split(' | ')[0].split(': ')[1];
+            const vote_average = document.getElementById('movieDetails').textContent.split(' | ')[1].split(': ')[1];
+
+            fetch('/remove-from-watched', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ movieId, title, overview, poster_path, release_date, vote_average })
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log(result.message);
+            })
+            .catch(error => console.error('Error:', error));
+
+            const banner = document.getElementById('remove');
+            banner.style.display = 'block';
+
+            setTimeout(() => {
+            banner.style.display = 'none';
+            }, 3000);
+            setTimeout(function () {
+            window.location.reload();
+            }, 3000);
+        });
+    });
+</script>
+{% endblock %}
